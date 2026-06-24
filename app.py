@@ -546,9 +546,9 @@ def run_gradio_inference(audio_path, request: gr.Request):
                 <!-- Confidence Meter -->
                 <div class="terminal-card">
                     <h3 style="margin-top: 0; color: #3b82f6; font-size: 16px; font-weight: 600; text-transform: uppercase;">Deepfake Probability Meter</h3>
-                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8;">
-                        <span>REAL (0%)</span>
-                        <span>FAKE (100%)</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px;">
+                        <span>Genuine</span>
+                        <span>Spoofed</span>
                     </div>
                     <div class="progress-bar-container">
                         <div class="progress-bar-fill" style="width: {result['spoof_confidence']*100:.1f}%; background-color: {badge_color};"></div>
