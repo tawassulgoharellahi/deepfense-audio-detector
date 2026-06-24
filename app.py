@@ -457,13 +457,15 @@ def run_gradio_inference(audio_path, request: gr.Request):
     def make_status_html(email, remaining):
         warning_style = "color: #ef4444;" if remaining <= 2 else "color: #00ff66;"
         return f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.15); border-radius: 6px; margin-bottom: 20px; font-family: 'JetBrains Mono', monospace;">
-            <div>
+        <div class="custom-status-bar">
+            <div class="status-user">
                 <span style="color: #94a3b8;">User:</span> <span style="color: #00f0ff; font-weight: 600;">{email}</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 20px;">
-                <span style="color: #94a3b8;">Daily Quota:</span> <span style="{warning_style} font-weight: 600;">{remaining} / 10 scans remaining</span>
-                <a href="/logout" style="color: #ef4444; text-decoration: none; border-bottom: 1px dashed #ef4444;">Logout</a>
+            <div class="status-quota">
+                <div>
+                    <span style="color: #94a3b8;">Daily Quota:</span> <span style="{warning_style} font-weight: 600;">{remaining} / 10 scans remaining</span>
+                </div>
+                <a href="/logout" class="logout-link">Logout</a>
             </div>
         </div>
         """
@@ -631,13 +633,15 @@ def on_page_load(request: gr.Request):
     warning_style = "color: #ef4444;" if remaining <= 2 else "color: #00ff66;"
     
     return f"""
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.15); border-radius: 6px; margin-bottom: 20px; font-family: 'JetBrains Mono', monospace;">
-        <div>
+    <div class="custom-status-bar">
+        <div class="status-user">
             <span style="color: #94a3b8;">User:</span> <span style="color: #00f0ff; font-weight: 600;">{email}</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 20px;">
-            <span style="color: #94a3b8;">Daily Quota:</span> <span style="{warning_style} font-weight: 600;">{remaining} / 10 scans remaining</span>
-            <a href="/logout" style="color: #ef4444; text-decoration: none; border-bottom: 1px dashed #ef4444;">Logout</a>
+        <div class="status-quota">
+            <div>
+                <span style="color: #94a3b8;">Daily Quota:</span> <span style="{warning_style} font-weight: 600;">{remaining} / 10 scans remaining</span>
+            </div>
+            <a href="/logout" class="logout-link">Logout</a>
         </div>
     </div>
     """
@@ -717,6 +721,58 @@ button.primary {
 button.primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 0 25px rgba(0, 240, 255, 0.4) !important;
+}
+.custom-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: rgba(0, 240, 255, 0.05);
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+}
+.status-user {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 250px;
+}
+.status-quota {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.logout-link {
+    color: #ef4444 !important;
+    text-decoration: none;
+    border-bottom: 1px dashed #ef4444;
+    transition: all 0.2s ease;
+    font-weight: 600;
+}
+.logout-link:hover {
+    color: #f87171 !important;
+    border-bottom-style: solid;
+}
+
+@media (max-width: 600px) {
+    .custom-status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px;
+    }
+    .status-user {
+        max-width: 100%;
+        width: 100%;
+    }
+    .status-quota {
+        width: 100%;
+        justify-content: space-between;
+        gap: 10px;
+    }
 }
 """
 
