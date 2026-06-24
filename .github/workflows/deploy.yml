@@ -8,6 +8,9 @@ on:
 jobs:
   sync-to-hub:
     runs-on: ubuntu-latest
+    environment:
+      name: Hugging Face Spaces
+      url: https://huggingface.co/spaces/tawassulgohar/deepfense-audio-detector
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
