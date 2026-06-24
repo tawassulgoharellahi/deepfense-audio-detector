@@ -173,7 +173,14 @@ async def login_page(request: Request):
     if not client_id:
         raise HTTPException(status_code=500, detail="Google client ID not configured in .env")
         
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:7860/login/google/callback")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    if not redirect_uri:
+        host = request.headers.get("x-forwarded-host")
+        if not host:
+            host = request.headers.get("host", "localhost:7860")
+        proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+        redirect_uri = f"{proto}://{host}/login/google/callback"
+        
     auth_url = (
         "https://accounts.google.com/o/oauth2/v2/auth"
         f"?response_type=code"
@@ -182,7 +189,7 @@ async def login_page(request: Request):
         f"&scope=openid%20email%20profile"
         f"&prompt=select_account"
     )
-    google_button = f'<a href="{auth_url}" class="btn">Sign In with Google</a>'
+    google_button = f'<a href="{auth_url}" class="btn" target="_top">Sign In with Google</a>'
     
     return LOGIN_TEMPLATE.format(google_button=google_button)
 
@@ -200,7 +207,14 @@ async def auth_callback(request: Request, code: str = None, error: str = None):
         
     client_id = os.getenv("GOOGLE_CLIENT_ID")
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:7860/login/google/callback")
+    
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    if not redirect_uri:
+        host = request.headers.get("x-forwarded-host")
+        if not host:
+            host = request.headers.get("host", "localhost:7860")
+        proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+        redirect_uri = f"{proto}://{host}/login/google/callback"
     
     if not client_id or not client_secret:
         return HTMLResponse(content="<h3>Google OAuth credentials missing on server.</h3>", status_code=500)
