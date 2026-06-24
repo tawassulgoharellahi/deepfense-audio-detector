@@ -28,3 +28,9 @@ quota.db
 *.mp3
 *.wav
 test-audio.mp3
+
+# Test and utility scripts
+test_*.py
+check_*.py
+download_*.py
+
