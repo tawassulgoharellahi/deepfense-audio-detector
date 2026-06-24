@@ -43,6 +43,7 @@ async def auth_middleware(request: Request, call_next):
     # Define endpoints exempt from user authentication
     exempt_paths = [
         "/login",
+        "/login/google",
         "/login/google/callback",
         "/api/detect",
         "/docs",
@@ -169,6 +170,26 @@ async def login_page(request: Request):
     if request.session.get("user"):
         return RedirectResponse(url="/")
         
+    google_button = """
+    <button onclick="login()" class="btn">Sign In with Google</button>
+    <script>
+        function login() {
+            const width = 600;
+            const height = 700;
+            const left = (window.screen.width / 2) - (width / 2);
+            const top = (window.screen.height / 2) - (height / 2);
+            window.open(
+                '/login/google',
+                'Google Login',
+                'width=' + width + ',height=' + height + ',top=' + top + ',left=' + left + ',resizable=yes,scrollbars=yes,status=yes'
+            );
+        }
+    </script>
+    """
+    return LOGIN_TEMPLATE.format(google_button=google_button)
+
+@app.get("/login/google")
+async def login_google(request: Request):
     client_id = os.getenv("GOOGLE_CLIENT_ID")
     if not client_id:
         raise HTTPException(status_code=500, detail="Google client ID not configured in .env")
@@ -189,9 +210,7 @@ async def login_page(request: Request):
         f"&scope=openid%20email%20profile"
         f"&prompt=select_account"
     )
-    google_button = f'<a href="{auth_url}" class="btn" target="_top">Sign In with Google</a>'
-    
-    return LOGIN_TEMPLATE.format(google_button=google_button)
+    return RedirectResponse(url=auth_url)
 
 @app.get("/logout")
 async def logout(request: Request):
@@ -252,7 +271,40 @@ async def auth_callback(request: Request, code: str = None, error: str = None):
             "name": name
         }
         
-    return RedirectResponse(url="/")
+    success_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Access Granted</title>
+        <style>
+            body {
+                background-color: #080d1a;
+                color: #e2e8f0;
+                font-family: sans-serif;
+                text-align: center;
+                padding-top: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>Access Granted Successfully!</h2>
+        <p>Closing window...</p>
+        <script>
+            try {
+                if (window.opener) {
+                    window.opener.location.reload();
+                }
+            } catch (e) {
+                console.error("Opener reload failed:", e);
+            }
+            setTimeout(function() {
+                window.close();
+            }, 500);
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=success_html, status_code=200)
 
 # 6. Define FastAPI JSON Endpoint (Protected by Session/IP Quotas)
 @app.post("/api/detect")
