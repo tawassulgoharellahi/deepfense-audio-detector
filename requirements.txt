@@ -1,0 +1,13 @@
+gradio>=5.0.0
+fastapi
+uvicorn
+python-multipart
+torch
+transformers
+librosa
+soundfile
+numpy<2
+deepfense
+httpx
+itsdangerous
+python-dotenv

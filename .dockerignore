@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Git and metadata
+.git/
+.gitignore
+.env
+
+# Testing and scratch files
+test_*.py
+check_*.py
+download_*.py
+*.wav
+*.log
+
+# System files
+.DS_Store

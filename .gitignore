@@ -1,0 +1,30 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS files
+.DS_Store
+.DS_Store?
+*~
+._*
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Model checkpoints & weights (large binaries)
+models/WavLM-Large.pt
+models/**/*.pth
+models/**/*.pt
+
+# Databases
+*.db
+quota.db
+
+# Local diagnostic or test files
+*.mp3
+*.wav
+test-audio.mp3
