@@ -93,15 +93,17 @@ LOGIN_TEMPLATE = """
     <title>Login - DeepFense AI Audio Detector</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body {{
+        html, body {{
             background-color: #080d1a;
             color: #e2e8f0;
             font-family: 'JetBrains Mono', monospace;
             margin: 0;
+            padding: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
         }}
         .container {{
             background-color: #0b132b;
@@ -186,6 +188,47 @@ async def login_page(request: Request):
                 'width=' + width + ',height=' + height + ',top=' + top + ',left=' + left + ',resizable=yes,scrollbars=yes,status=yes'
             );
         }
+
+        // --- Auto-reload listeners: detect login_success from popup ---
+        // 1. BroadcastChannel
+        try {
+            const bc = new BroadcastChannel("auth_channel");
+            bc.onmessage = (event) => {
+                if (event.data === "login_success") {
+                    console.log("[AUTH] BroadcastChannel signal received on login page");
+                    window.location.reload();
+                }
+            };
+        } catch (e) { console.error("BroadcastChannel failed:", e); }
+
+        // 2. LocalStorage storage event
+        window.addEventListener("storage", (event) => {
+            if (event.key === "login_success") {
+                console.log("[AUTH] LocalStorage signal received on login page");
+                window.location.reload();
+            }
+        });
+
+        // 3. postMessage
+        window.addEventListener("message", (event) => {
+            if (event.data === "login_success") {
+                console.log("[AUTH] postMessage signal received on login page");
+                window.location.reload();
+            }
+        });
+
+        // 4. LocalStorage polling fallback
+        const pollId = setInterval(() => {
+            let hasFlag = false;
+            try { hasFlag = localStorage.getItem('login_success') !== null; } catch(e) {}
+            if (hasFlag) {
+                console.log("[AUTH] login_success flag detected via polling on login page");
+                clearInterval(pollId);
+                try { localStorage.removeItem('login_success'); } catch(e) {}
+                window.location.reload();
+            }
+        }, 1500);
+        setTimeout(() => clearInterval(pollId), 600000);
     </script>
     """
     return LOGIN_TEMPLATE.format(google_button=google_button)
