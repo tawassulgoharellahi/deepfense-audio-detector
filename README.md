@@ -1,18 +1,19 @@
----
-title: DeepFense Audio Detector
-emoji: 🎧
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
-pinned: false
----
-
 # DeepFense Audio Detector
 
 DeepFense Audio Detector is a next-generation artificial intelligence deepfake and voice spoofing detection engine. It operates on a unified machine learning pipeline using a WavLM-Large self-supervised speech representation model front-end and a Nes2Net binary neural network classifier back-end.
 
 This repository includes a FastAPI backend, a Gradio developer-themed terminal dashboard, and a direct JSON REST API endpoint. Access control is managed through session-based Google OAuth, and usage is regulated via a thread-safe local daily scan quota system.
+
+---
+
+## About DeepFense
+**DeepFense** is an open-source, configuration-driven PyTorch framework developed to standardize research and deployment in speech anti-spoofing and deepfake detection. By providing modular plug-and-play interfaces, it allows researchers to easily combine state-of-the-art self-supervised frontends (like WavLM or Wav2Vec 2.0) with advanced classifier backends (like Nes2Net or AASIST).
+
+### Credits
+* **DeepFense Framework**: Built on the open-source [DeepFense](https://github.com/idiap/deepfense) anti-spoofing framework.
+* **WavLM-Large**: Microsoft Research for the self-supervised speech representation foundation model.
+* **Nes2Net Backend**: The authors of the Nested Res2Net (Nes2Net) lightweight, high-capacity neural network model for anti-spoofing.
+* **ASVspoof Initiative**: The models are trained on datasets curated by the ASVspoof community for synthetic speech detection.
 
 ---
 
@@ -78,9 +79,37 @@ graph TD
 * **WavLM-Large SSL Model**: Extracts rich temporal and speaker representations.
 * **Nes2Net Classifier**: A binary classifier trained on synthetic voice artifacts, predicting whether the feature frame is genuine (bonafide) or artificial (spoof).
 * **Segment-Level Division**: Splits the input wave into 4.0-second non-overlapping windows.
-* **Decision Scoring**: Computes the Log-Likelihood Ratio (LLR):
-  \[LLR = \text{logit}_{\text{bonafide}} - \text{logit}_{\text{spoof}}\]
-  The LLR is mapped to a probability using a calibrated sigmoid function with a +13.0 offset. If any single segment exhibits an LLR below the classification boundary, the entire clip is flagged as manipulated.
+
+---
+
+## Mathematical Logic and Decision Formula
+
+To perform robust spoofing detection, the application analyzes the audio signal using the following mathematical formulation:
+
+### 1. Raw Score Calculation (Log-Likelihood Ratio)
+For each 4.0-second chunk $j$, the model outputs raw neural network logits representing the classification confidence:
+* $logit_0$: Spoof/Fake score.
+* $logit_1$: Bonafide/Real score.
+
+The raw boundary score is computed as the **Log-Likelihood Ratio (LLR)**:
+\[LLR_j = logit_1 - logit_0\]
+
+### 2. Calibrated Probability Sigmoid Mapping
+The raw LLR score is mapped to a probability scale using a calibrated sigmoid function with a $+13.0$ shift:
+\[P_j(\text{real}) = \sigma(LLR_j + 13.0) = \frac{1}{1 + e^{-(LLR_j + 13.0)}}\]
+\[P_j(\text{fake}) = 1.0 - P_j(\text{real})\]
+
+* **Calibrated Boundary**: The $+13.0$ offset calibrates the model so that an LLR score of exactly $-13.0$ corresponds to a $50\%$ probability of the audio being spoofed. 
+* **Interpretation**:
+  * If $LLR_j < -13.0 \implies P_j(\text{fake}) \ge 0.5$ (Flagged as **Fake/AI**)
+  * If $LLR_j \ge -13.0 \implies P_j(\text{fake}) < 0.5$ (Flagged as **Real**)
+
+### 3. Aggregation and Decision Logic
+To ensure that brief synthetic clips or edited/deepfaked insertions within a longer recording are detected, the system uses an **Any-Segment Trigger (logical OR)** rule:
+* An entire audio clip is flagged as **Fake/AI** if **any single segment** exhibits a spoof probability of $50\%$ or more:
+  \[\text{Is\_Spoof} = \max_j (P_j(\text{fake})) \ge 0.5\]
+* The **Overall Spoof Confidence** of the entire audio file is represented by the maximum spoof probability across all segments (worst-case model):
+  \[\text{Confidence}_{\text{spoof}} = \max_j (P_j(\text{fake}))\]
 
 ---
 
@@ -108,24 +137,3 @@ SESSION_SECRET=your_secure_random_session_secret
    python app.py
    ```
 3. Open `http://localhost:7860` in a browser.
-
----
-
-## Automated Deployment to Hugging Face Spaces
-
-This repository is configured to automatically synchronize and deploy to Hugging Face Spaces using GitHub Actions.
-
-### Setup Instructions
-1. Create a new Space on [Hugging Face](https://huggingface.co/spaces):
-   * Select **Docker** as the SDK.
-   * Choose **Blank** template.
-2. Generate a Hugging Face Write Token:
-   * Go to your Hugging Face settings > Access Tokens.
-   * Create a new token with **Write** role.
-3. Configure GitHub Repository Secrets:
-   * Go to your GitHub repository > Settings > Secrets and variables > Actions.
-   * Add a new repository secret:
-     * Name: `HF_TOKEN`
-     * Value: Paste your Hugging Face Write token.
-     * Name: `HF_SPACE_NAME`
-     * Value: Paste your space name (e.g. `your-username/deepfense-detector`).
