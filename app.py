@@ -46,6 +46,7 @@ async def auth_middleware(request: Request, call_next):
         "/login/google",
         "/login/google/callback",
         "/api/detect",
+        "/api/auth-status",
         "/docs",
         "/openapi.json"
     ]
@@ -187,48 +188,27 @@ async def login_page(request: Request):
                 'Google Login',
                 'width=' + width + ',height=' + height + ',top=' + top + ',left=' + left + ',resizable=yes,scrollbars=yes,status=yes'
             );
-        }
 
-        // --- Auto-reload listeners: detect login_success from popup ---
-        // 1. BroadcastChannel
-        try {
-            const bc = new BroadcastChannel("auth_channel");
-            bc.onmessage = (event) => {
-                if (event.data === "login_success") {
-                    console.log("[AUTH] BroadcastChannel signal received on login page");
-                    window.location.reload();
+            // Start polling server for auth status after popup opens
+            // This is the most reliable method — uses the same session cookie
+            // mechanism as manual reload, bypassing storage partitioning issues
+            const pollId = setInterval(async () => {
+                try {
+                    const resp = await fetch('/api/auth-status', { credentials: 'include' });
+                    const data = await resp.json();
+                    if (data.authenticated) {
+                        console.log('[AUTH] Server confirmed authentication, redirecting...');
+                        clearInterval(pollId);
+                        window.location.href = '/';
+                    }
+                } catch (e) {
+                    console.error('[AUTH] Poll failed:', e);
                 }
-            };
-        } catch (e) { console.error("BroadcastChannel failed:", e); }
+            }, 2000);
 
-        // 2. LocalStorage storage event
-        window.addEventListener("storage", (event) => {
-            if (event.key === "login_success") {
-                console.log("[AUTH] LocalStorage signal received on login page");
-                window.location.reload();
-            }
-        });
-
-        // 3. postMessage
-        window.addEventListener("message", (event) => {
-            if (event.data === "login_success") {
-                console.log("[AUTH] postMessage signal received on login page");
-                window.location.reload();
-            }
-        });
-
-        // 4. LocalStorage polling fallback
-        const pollId = setInterval(() => {
-            let hasFlag = false;
-            try { hasFlag = localStorage.getItem('login_success') !== null; } catch(e) {}
-            if (hasFlag) {
-                console.log("[AUTH] login_success flag detected via polling on login page");
-                clearInterval(pollId);
-                try { localStorage.removeItem('login_success'); } catch(e) {}
-                window.location.reload();
-            }
-        }, 1500);
-        setTimeout(() => clearInterval(pollId), 600000);
+            // Stop polling after 10 minutes
+            setTimeout(() => clearInterval(pollId), 600000);
+        }
     </script>
     """
     return LOGIN_TEMPLATE.format(google_button=google_button)
@@ -261,6 +241,12 @@ async def login_google(request: Request):
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/login")
+
+@app.get("/api/auth-status")
+async def auth_status(request: Request):
+    """Lightweight endpoint polled by login page to detect successful authentication."""
+    user = request.session.get("user")
+    return JSONResponse(content={"authenticated": bool(user)})
 
 @app.get("/login/google/callback")
 async def auth_callback(request: Request, code: str = None, error: str = None):
