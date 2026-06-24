@@ -280,26 +280,55 @@ async def auth_callback(request: Request, code: str = None, error: str = None):
             body {
                 background-color: #080d1a;
                 color: #e2e8f0;
-                font-family: sans-serif;
+                font-family: 'Inter', sans-serif;
                 text-align: center;
-                padding-top: 50px;
+                padding-top: 80px;
             }
+            .spinner {
+                width: 40px; height: 40px;
+                border: 3px solid rgba(99,102,241,0.2);
+                border-top-color: #6366f1;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+                margin: 0 auto 20px;
+            }
+            @keyframes spin { to { transform: rotate(360deg); } }
         </style>
     </head>
     <body>
+        <div class="spinner"></div>
         <h2>Access Granted Successfully!</h2>
-        <p>Closing window...</p>
+        <p style="color: #64748b; font-size: 0.85rem;">Redirecting back to portal...</p>
         <script>
+            // 1. Send signal via BroadcastChannel
+            try {
+                const bc = new BroadcastChannel("auth_channel");
+                bc.postMessage("login_success");
+                bc.close();
+            } catch (e) {
+                console.error("BroadcastChannel postMessage failed:", e);
+            }
+
+            // 2. Send signal via LocalStorage storage event fallback
+            try {
+                localStorage.setItem("login_success", Date.now().toString());
+            } catch (e) {
+                console.error("LocalStorage write failed:", e);
+            }
+
+            // 3. Fallback to postMessage (if window.opener is still alive)
             try {
                 if (window.opener) {
-                    window.opener.location.reload();
+                    window.opener.postMessage("login_success", "*");
                 }
             } catch (e) {
-                console.error("Opener reload failed:", e);
+                console.error("Opener postMessage failed:", e);
             }
-            setTimeout(function() {
+
+            // 4. Close the popup
+            setTimeout(() => {
                 window.close();
-            }, 500);
+            }, 800);
         </script>
     </body>
     </html>
@@ -704,6 +733,58 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Default(primary_hue="cyan", neutr
         fn=on_page_load,
         inputs=None,
         outputs=[user_status_bar]
+    )
+
+    # Register client-side listeners + polling to detect login_success from popup
+    demo.load(
+        fn=None,
+        inputs=[],
+        outputs=[],
+        js="""() => {
+            // 1. BroadcastChannel method
+            try {
+                const bc = new BroadcastChannel("auth_channel");
+                bc.onmessage = (event) => {
+                    if (event.data === "login_success") {
+                        console.log("[AUTH] BroadcastChannel signal received");
+                        window.location.reload();
+                    }
+                };
+            } catch (e) {
+                console.error("BroadcastChannel listener registration failed:", e);
+            }
+
+            // 2. LocalStorage storage event fallback
+            window.addEventListener("storage", (event) => {
+                if (event.key === "login_success") {
+                    console.log("[AUTH] LocalStorage signal received");
+                    window.location.reload();
+                }
+            });
+
+            // 3. postMessage event listener fallback
+            window.addEventListener("message", (event) => {
+                if (event.data === "login_success") {
+                    console.log("[AUTH] postMessage signal received");
+                    window.location.reload();
+                }
+            });
+
+            // 4. LocalStorage polling fallback — works even in sandboxed iframes
+            const pollId = setInterval(() => {
+                let hasFlag = false;
+                try { hasFlag = localStorage.getItem('login_success') !== null; } catch(e) {}
+                if (hasFlag) {
+                    console.log("[AUTH] login_success flag detected via polling, reloading...");
+                    clearInterval(pollId);
+                    try { localStorage.removeItem('login_success'); } catch(e) {}
+                    window.location.reload();
+                }
+            }, 1500);
+
+            // Stop polling after 10 minutes
+            setTimeout(() => clearInterval(pollId), 600000);
+        }"""
     )
 
 # 8. Mount Gradio interface inside FastAPI
