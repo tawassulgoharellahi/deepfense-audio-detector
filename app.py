@@ -78,7 +78,9 @@ app.add_middleware(BaseHTTPMiddleware, dispatch=auth_middleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=session_secret,
-    max_age=86400  # 1 day session validity
+    max_age=86400,      # 1 day session validity
+    same_site="none",   # Required: allow cookie in cross-site iframe (HF embeds in huggingface.co)
+    https_only=True     # Required when SameSite=None; HF Spaces serves over HTTPS
 )
 
 # 5. OAuth & Session Authentication Endpoints
