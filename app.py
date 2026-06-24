@@ -155,6 +155,17 @@ LOGIN_TEMPLATE = """
             color: #64748b;
         }}
     </style>
+    <script>
+        // Adjust body size if inside an iframe (e.g. Hugging Face Spaces) to allow auto-resizing
+        if (window.self !== window.top) {{
+            document.documentElement.style.height = 'auto';
+            document.body.style.height = 'auto';
+            document.body.style.minHeight = 'auto';
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+        }}
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.9/iframeResizer.contentWindow.min.js" async></script>
 </head>
 <body>
     <div class="container">
