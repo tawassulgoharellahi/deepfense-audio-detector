@@ -1,3 +1,13 @@
+---
+title: DeepFense Audio Detector
+emoji: 🎧
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # DeepFense Audio Detector
 
 DeepFense Audio Detector is a next-generation artificial intelligence deepfake and voice spoofing detection engine. It operates on a unified machine learning pipeline using a WavLM-Large self-supervised speech representation model front-end and a Nes2Net binary neural network classifier back-end.
