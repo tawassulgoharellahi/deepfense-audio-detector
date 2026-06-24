@@ -23,6 +23,28 @@ class AudioDeepfakeDetector:
         if wavlm_ckpt_path is None:
             wavlm_ckpt_path = os.path.join(base_dir, 'models', 'WavLM-Large.pt')
         
+        # Download DeepFense model if it doesn't exist locally
+        if not os.path.exists(config_path) or not os.path.exists(checkpoint_path):
+            print("Model config or checkpoint not found locally. Downloading from Hugging Face Hub...")
+            try:
+                from deepfense.hub import download_model
+                models_dir = os.path.join(base_dir, 'models')
+                download_model("ASV19_WavLM_Nes2Net_NoAug_Seed42", output_dir=models_dir)
+            except Exception as e:
+                print(f"Error downloading DeepFense model: {e}")
+                
+        # Download WavLM-Large.pt if it doesn't exist locally
+        if not os.path.exists(wavlm_ckpt_path):
+            print(f"WavLM-Large.pt not found at: {wavlm_ckpt_path}")
+            print("Downloading WavLM-Large.pt from Hugging Face Hub...")
+            try:
+                from huggingface_hub import hf_hub_download
+                cached_wavlm_path = hf_hub_download(repo_id="s3prl/converted_ckpts", filename="wavlm_large.pt")
+                print(f"WavLM-Large.pt loaded from cache: {cached_wavlm_path}")
+                wavlm_ckpt_path = cached_wavlm_path
+            except Exception as e:
+                print(f"Error downloading WavLM-Large.pt from Hub: {e}")
+        
         # Load configuration
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"Config file not found at: {config_path}")
