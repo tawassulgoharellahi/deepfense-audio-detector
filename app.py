@@ -76,12 +76,21 @@ async def auth_middleware(request: Request, call_next):
 # so it is registered last (outermost layer).
 from starlette.middleware.base import BaseHTTPMiddleware
 app.add_middleware(BaseHTTPMiddleware, dispatch=auth_middleware)
+# Configure session cookie flags dynamically based on environment
+# Hugging Face Spaces runs inside an HTTPS iframe, requiring SameSite=None and Secure=True.
+# Local development runs over HTTP, where Secure=True cookies are blocked by browsers.
+is_local_dev = os.getenv("GOOGLE_REDIRECT_URI", "").startswith("http://localhost") or \
+               os.getenv("GOOGLE_REDIRECT_URI", "").startswith("http://127.0.0.1")
+
+cookie_same_site = "lax" if is_local_dev else "none"
+cookie_secure = False if is_local_dev else True
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=session_secret,
     max_age=86400,      # 1 day session validity
-    same_site="none",   # Required: allow cookie in cross-site iframe (HF embeds in huggingface.co)
-    https_only=True     # Required when SameSite=None; HF Spaces serves over HTTPS
+    same_site=cookie_same_site,
+    https_only=cookie_secure
 )
 
 # 5. OAuth & Session Authentication Endpoints
@@ -281,7 +290,7 @@ async def auth_callback(request: Request, code: str = None, error: str = None):
         return HTMLResponse(content="<h3>Google OAuth credentials missing on server.</h3>", status_code=500)
         
     import httpx
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         # Exchange authorization code for token
         token_url = "https://oauth2.googleapis.com/token"
         token_data = {
