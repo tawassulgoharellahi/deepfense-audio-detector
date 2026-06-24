@@ -163,18 +163,20 @@ LOGIN_TEMPLATE = """
             font-size: 10px;
             color: #64748b;
         }}
+        /* If inside iframe, override height to auto immediately to allow resizing without scrollbars */
+        html.in-iframe, html.in-iframe body {{
+            height: auto !important;
+            min-height: auto !important;
+            overflow: hidden !important;
+        }}
     </style>
     <script>
-        // Adjust body size if inside an iframe (e.g. Hugging Face Spaces) to allow auto-resizing
+        // Adjust body size immediately if inside an iframe (e.g. Hugging Face Spaces) to allow auto-resizing
         if (window.self !== window.top) {{
-            document.documentElement.style.height = 'auto';
-            document.body.style.height = 'auto';
-            document.body.style.minHeight = 'auto';
-            document.documentElement.style.overflow = 'hidden';
-            document.body.style.overflow = 'hidden';
+            document.documentElement.classList.add('in-iframe');
         }}
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.9/iframeResizer.contentWindow.min.js" async></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.9/iframeResizer.contentWindow.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -474,7 +476,7 @@ def run_gradio_inference(audio_path, request: gr.Request):
                 <div>
                     <span style="color: #94a3b8;">Daily Quota:</span> <span style="{warning_style} font-weight: 600;">{remaining} / 10 scans remaining</span>
                 </div>
-                <a href="/logout" class="logout-link">Logout</a>
+                <a href="/logout" class="logout-btn" style="display: inline-flex; align-items: center; justify-content: center; padding: 6px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; color: #ef4444; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; cursor: pointer; transition: all 0.2s ease-in-out;">Logout</a>
             </div>
         </div>
         """
@@ -650,7 +652,7 @@ def on_page_load(request: gr.Request):
             <div>
                 <span style="color: #94a3b8;">Daily Quota:</span> <span style="{warning_style} font-weight: 600;">{remaining} / 10 scans remaining</span>
             </div>
-            <a href="/logout" class="logout-link">Logout</a>
+            <a href="/logout" class="logout-btn" style="display: inline-flex; align-items: center; justify-content: center; padding: 6px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; color: #ef4444; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; cursor: pointer; transition: all 0.2s ease-in-out;">Logout</a>
         </div>
     </div>
     """
@@ -754,16 +756,32 @@ button.primary:hover {
     align-items: center;
     gap: 15px;
 }
-.logout-link {
+.logout-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    background: rgba(239, 68, 68, 0.1) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    border-radius: 4px;
     color: #ef4444 !important;
-    text-decoration: none;
-    border-bottom: 1px dashed #ef4444;
-    transition: all 0.2s ease;
+    font-size: 11px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
 }
-.logout-link:hover {
+.logout-btn:hover {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border-color: rgba(239, 68, 68, 0.6) !important;
     color: #f87171 !important;
-    border-bottom-style: solid;
+    transform: translateY(-1px);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
+}
+.logout-btn:active {
+    transform: translateY(0);
 }
 
 @media (max-width: 600px) {
